@@ -24,36 +24,33 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 ### WAF setup
 
 ```powershell
-### assume Powershell !!!
+### assume BASH !!!
 
 ### store CPTOKEN secret
 # make sure create your own Docker Profile with Single Managed container and use your real CPTOKEN below
-@"
+cat <<'EOF' | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
   name: appsec
 type: Opaque
 stringData:
-  cptoken: cp-b472cbd5-da1e-4498-8145-cbaa8be4681fb7c7346e-9af2-4354-9204-3b1a95e4f28e 
-"@ | kubectl apply -f -
+  cptoken: cp-bfeae006-5cef-476e-ae20-955ba17d9b88625d1655-2871-473b-ac09-a60a0765a06d 
+EOF
 
-function decodeBase64($base64String) { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($base64String)) }
 
-$secret = kubectl get secret appsec -o jsonpath='{.data.cptoken}'
-decodeBase64($secret)
+kubectl get secret appsec -o jsonpath='{.data.cptoken}' | base64 -d; echo
 
 # create certificate secret for hostname hello.klaud.online with CertManager
-@"
+cat <<'EOF' | kubectl apply -f -
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: selfsigned-cluster-issuer
 spec:
   selfSigned: {}
-"@ | kubectl apply -f -
 
-@"
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -72,17 +69,17 @@ spec:
   issuerRef:
     name: selfsigned-cluster-issuer
     kind: ClusterIssuer
-"@ | kubectl apply -f -
+EOF
 
 # check the logs of cert-manager
-kubectl logs -n cert-manager deploy/cert-manager | sls hello
+kubectl logs -n cert-manager deploy/cert-manager | grep hello
 
 # check the secret
-kubectl get secret hello-klaud-tls -n default -o yaml
+kubectl get secret hello-klaud-tls -n default -o yaml 
 
 
 # deploy CloudGuard WAF
-@'
+cat <<'EOF' | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -164,7 +161,7 @@ spec:
             secretName: hello-klaud-tls
         - name: certs
           emptyDir: {}
-'@ | kubectl apply -f -
+EOF
 
 # ceck the deployment
 kubectl get deploy appsec -o wide -n default
@@ -174,17 +171,20 @@ kubectl get po -o wide -n default -l app=appsec
 kubectl exec -it deploy/appsec -n default -- /bin/bash
 # or just check it
 kubectl exec -it deploy/appsec -n default -- cpnano -s
+kubectl exec -it deploy/appsec -n default -- cpnano -s | grep Policy
 kubectl exec -it deploy/appsec -n default -- nginx -T
+kubectl exec -it deploy/appsec -n default -- nginx -T | grep hello
 
 # expose it as service on Public IP
 kubectl expose deploy appsec --type LoadBalancer --name appsec --port 80,443 -n default
+# wait for External-IP to be assigned and Ctrl-C
 kubectl get svc -o wide -n default -w
 
 # access it via Public IP
-$pip = kubectl get svc appsec -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-$pip
-curl.exe https://hello.klaud.online --resolve hello.klaud.online:443:$($pip) -k -v
-curl.exe "https://hello.klaud.online/?z=cat+/etc/passwd" --resolve hello.klaud.online:443:$($pip) -k -v
+PIP=$(kubectl get svc appsec -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "$PIP"
+curl https://hello.klaud.online --resolve hello.klaud.online:443:$PIP -k -v
+curl "https://hello.klaud.online/?z=cat+/etc/passwd" --resolve hello.klaud.online:443:$PIP -k -v
 
 ```
 

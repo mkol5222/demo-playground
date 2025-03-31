@@ -62,6 +62,12 @@ curl "https://hello.klaud.online/?z=cat+/etc/passwd" --resolve hello.klaud.onlin
 
 ### CLEANUP
 ```shell
+# remove WAF, optional
+helm uninstall waf
+# default namespace should get WAF resources removed
+watch -d kubectl get all 
+
+#
 az aks list -o table -g aks
 # delete RG with the cluster and all resources
 az aks delete --resource-group aks --name aks1 -y --no-wait
