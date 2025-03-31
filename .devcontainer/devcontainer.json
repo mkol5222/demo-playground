@@ -1,0 +1,18 @@
+{
+	"image": "mcr.microsoft.com/devcontainers/universal:2",
+	"features": {
+		"ghcr.io/devcontainers/features/azure-cli:1": {
+			"installUsingPython": true,
+			"version": "latest",
+			"bicepVersion": "latest"
+		},
+		"ghcr.io/devcontainers-extra/features/terraform-asdf:2": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+			"version": "latest",
+			"helm": "latest",
+			"minikube": "latest"
+		}
+	}
+}
