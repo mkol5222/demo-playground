@@ -73,6 +73,6 @@ az aks list -o table -g aks
 az aks delete --resource-group aks --name aks1 -y --no-wait
 az group delete --resource-group aks
 # check it is gone
-az aks list -o table  aks
-az group list -o table | sls aks
+az aks list -o table 
+az group list -o table | grep aks
 ```
